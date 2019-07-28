@@ -1,6 +1,10 @@
 import cv2 as cv  
 import numpy as np 
 import serial
+from pid import PID 
+import time
+Pid = PID()
+
 
 
 def think(top_right,top_left,botto_left,botto_right,last_top_right,last_top_left,last_botto_left,last_botto_right):
@@ -19,11 +23,11 @@ def think(top_right,top_left,botto_left,botto_right,last_top_right,last_top_left
         error = 1
 
     src = np.float32([top_left,top_right,botto_left,botto_right])
-    
-   
+ 
+  
 
-lower = np.array([16, 98, 84])
-upper = np.array([155, 255 ,224])
+lower = np.array( [ 15, 127 ,106])
+upper = np.array([ 30 ,236 ,206]   )
 kernel = np.ones((5,5),np.uint8)
 cap = cv.VideoCapture(1)
 kernel = cv.getStructuringElement(cv.MORPH_CROSS,(9,9))
@@ -35,7 +39,7 @@ while True:
     ret,img = cap.read()
     canvas = np.copy(img)
     canvas1 = np.copy(img)
-    
+  
     img = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
     gray = cv.medianBlur(img,5) 
     edges = cv.Canny(gray, 20, 90, apertureSize = 3)
@@ -51,10 +55,10 @@ while True:
             epsilon = 0.1*cv.arcLength(cnt,True)
             approx = cv.approxPolyDP(cnt,epsilon,True)
             try:
-                top_right = approx[0]
-                top_left = approx[1]
-                botto_left = approx[2]
-                botto_right = approx[3]
+                top_right = approx[2]
+                top_left = approx[3]
+                botto_left = approx[0]
+                botto_right = approx[1]
                 if a == 0:   # 刚开始 设置过去变量  等异常时用
 
                     last_top_right = top_right
@@ -78,6 +82,7 @@ while True:
 
             M = cv.getPerspectiveTransform(src,dst)
             img = cv.warpPerspective(canvas1,M,(700,700))
+            img = cv.flip(img,0)
             canvas3 = np.copy(img)
             img = cv.cvtColor(img,cv.COLOR_BGR2HSV)
             img = cv.inRange(img,lower,upper)
@@ -89,10 +94,18 @@ while True:
                 x,y,w,h = cv.boundingRect(cnt)
                 area = w*h
                 if area > 1000 :
-                    #print("x:",x,"y:",y)
-                    canvas3 = cv.rectangle(canvas3,(x,y),(x+w,y+h),(0,255,0),2)
-                    continue
-                           
+                    x_cen = int(x+w/2)
+                    y_cen = int(y+h/2)
+                    #print("x:",x_cen,"y:",y_cen)
+                    
+                    canvas3 = cv.line(canvas3,(x_cen-20,y_cen),(x_cen+20,y_cen),(255,0,0),5)
+                    canvas3 = cv.line(canvas3,(x_cen,y_cen-20),(x_cen,y_cen+20),(255,0,0),5)
+                    canvas3 = cv.rectangle(canvas3,(x,y),(x+w,y+h),(255,255,0),3)
+                    Pid.pid_x(x_cen) 
+                    Pid.pid_y(y_cen)
+                    #Pid.print_pwm()  
+                    Pid.send_pwm()
+                    
 
     cv.imshow("canvas",canvas3)
     key = cv.waitKey(1)
