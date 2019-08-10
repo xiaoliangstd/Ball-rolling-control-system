@@ -5,6 +5,9 @@ from pid import PID
 import time
 Pid = PID()
 
+#ser = serial.Serial('/dev/ttyUSB0',115200)
+
+
 
 
 def think(top_right,top_left,botto_left,botto_right,last_top_right,last_top_left,last_botto_left,last_botto_right):
@@ -24,10 +27,15 @@ def think(top_right,top_left,botto_left,botto_right,last_top_right,last_top_left
 
     src = np.float32([top_left,top_right,botto_left,botto_right])
  
-  
 
-lower = np.array( [ 15, 127 ,106])
-upper = np.array([ 30 ,236 ,206]   )
+
+
+
+lower = np.array( [ 17, 167,  39])
+upper = np.array([ 41, 255, 168] )
+
+# lower = np.array(  [0, 0, 0])
+# upper = np.array([ 86 ,163 , 53]   )
 kernel = np.ones((5,5),np.uint8)
 cap = cv.VideoCapture(1)
 kernel = cv.getStructuringElement(cv.MORPH_CROSS,(9,9))
@@ -98,19 +106,42 @@ while True:
                     y_cen = int(y+h/2)
                     #print("x:",x_cen,"y:",y_cen)
                     
-                    canvas3 = cv.line(canvas3,(x_cen-20,y_cen),(x_cen+20,y_cen),(255,0,0),5)
-                    canvas3 = cv.line(canvas3,(x_cen,y_cen-20),(x_cen,y_cen+20),(255,0,0),5)
-                    canvas3 = cv.rectangle(canvas3,(x,y),(x+w,y+h),(255,255,0),3)
-                    Pid.pid_x(x_cen) 
-                    Pid.pid_y(y_cen)
+                    canvas = cv.rectangle(canvas3,(x,y),(x+w,y+h),(255,255,0),3)
+                    #Pid.pid_x(x_cen) 
+                    #Pid.pid_y(y_cen)
                     #Pid.print_pwm()  
-                    Pid.send_pwm()
+                    #Pid.send_pwm()
+                    
+                    # 数据 格式 
+                    if x_cen < 100 or y_cen < 100:
+                        if  x_cen < 100 and y_cen < 100:
+                            x_cen = '0' + str(x_cen)
+                            y_cen = '0' + str(y_cen)
+
+                        else:
+                            if x_cen <100 :
+                                x_cen = '0' + str(x_cen)
+                                y_cen = str(y_cen)
+                            else  :
+                                x_cen = str(x_cen)
+                                y_cen = '0' + str(y_cen)
+                    else:
+
+                        x_cen =  str(x_cen)
+                        y_cen =  str(y_cen)
+                    
+
+
+                    coordinate = x_cen+y_cen 
+                    print(coordinate)
+                    #ser.write(coordinate.encode())
                     
 
     cv.imshow("canvas",canvas3)
-    key = cv.waitKey(1)
+    key = cv.waitKey(5)
     if key == ord('s'):
         cv.imwrite("sucai.png",canvas3)
+        ser.write("10001000".encode())
         break
   
 cap.release()

@@ -2,10 +2,6 @@ import cv2 as cv
 
 
 
-
-
-
-
 gray = cv.imread('sucai.png', cv.IMREAD_GRAYSCALE)
 
 gray = cv.medianBlur(gray,5) 
