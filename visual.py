@@ -47,7 +47,9 @@ while True:
     ret,img = cap.read()
     canvas = np.copy(img)
     canvas1 = np.copy(img)
-  
+    cv.imshow("img",img)
+    cv.waitKey(1)
+    '''
     img = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
     gray = cv.medianBlur(img,5) 
     edges = cv.Canny(gray, 20, 90, apertureSize = 3)
@@ -143,6 +145,6 @@ while True:
         cv.imwrite("sucai.png",canvas3)
         ser.write("10001000".encode())
         break
-  
+    '''
 cap.release()
 cv.destroyAllWindows()
