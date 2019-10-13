@@ -1,12 +1,96 @@
-import math
+import cv2 as cv  
+import numpy as np 
+import serial
+import time
+from control import PID
+from servo import sendx_pwm
+from servo import sendy_pwm
 
-x = 15
-y = 15
+ser = serial.Serial('/dev/ttyUSB0',115200)
+kernel = np.ones((5,5),np.uint8)
+cap = cv.VideoCapture(1)
+lower = np.array( [147, 127 , 46])
+upper = np.array([171 ,228, 103])
 
-l1 = 10
-l2 = 10
+y_target = 252
 
-b =  (l1**2+l2**2 -x**2-y**2) / (2*l1*l2)
-c= l1**2
-print(b)
+pid = PID()
 
+i = 0
+
+def chang():
+    global i
+    i+=1
+    if i == 50000:
+        pid.x_target = 391
+        pid.y_target = 411
+
+    if i == 100000:
+        pid.x_target = 267
+        pid.y_target = 252
+        i = 0
+
+while True:
+
+    ret,img = cap.read()
+    canvas = np.copy(img)
+    canvas1 = np.copy(img)
+    img = cv.cvtColor(img,cv.COLOR_BGR2HSV)
+    img = cv.inRange(img,lower,upper)
+    img = cv.medianBlur(img,5) 
+    edges = cv.dilate(img, kernel, iterations=2)
+    cv.imshow("edges",edges)
+    contours, hier = cv.findContours(edges, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    for cnt in contours:
+            x,y,w,h = cv.boundingRect(cnt)
+            area = w*h
+            x = x # 补偿
+            #y = y-5
+            if area > 1000 and area < 5000:
+                x_cen = int(x+w/2)
+                y_cen = int(y+h/2)
+                #print("x:",x_cen,"y:",y_cen) 
+                canvas = cv.rectangle(canvas,(x,y),(x+w,y+h),(255,255,0),3) 
+                
+                px = pid.POSITIONX_PID(x_cen)
+                py = pid.POSITIONY_PID(y_cen)
+                pwmy = pid.SPEEDY_PID(y_cen,px) 
+                pwmx = pid.SPEEDX_PID(x_cen,py) 
+                sendx_pwm(pwmx)
+                cv.waitKey(1)
+                sendy_pwm(pwmy)
+                
+
+
+
+    #chang()
+    cv.imshow("canvas",canvas)
+
+    key_num = cv.waitKey(5)
+    if key_num == ord("q"):
+        pid.x_target = 267
+        pid.y_target = 252
+
+    if key_num == ord("w"):
+        pid.x_target = 391
+        pid.y_target = 411
+
+    if key_num == ord("e"):
+        pid.x_target = 130
+        pid.y_target = 370
+
+    if key_num == ord("r"):
+        pid.x_target = 175
+        pid.y_target = 120
+
+    if key_num == ord("t"):
+        pid.x_target = 418
+        pid.y_target = 140
+
+    if key_num == ord("s"):
+        cv.imwrite("sucai.png",canvas1)
+        break
+
+
+cap.release()
+cv.destroyAllWindows()
